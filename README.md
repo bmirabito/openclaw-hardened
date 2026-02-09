@@ -22,11 +22,43 @@ Hardened Docker deployment for OpenClaw bot instances. Packages all host-level a
 - **Fail2ban** — SSH jail with 3 retries / 10min window / 1hr ban
 - **Unattended upgrades** — automatic security patches
 
-## Quick Start
+## Prerequisites
 
-### 1. Harden the host (fresh Ubuntu 24.04)
+Before deploying, you need the following accounts and credentials ready.
+
+### Accounts to Create
+
+1. **AWS account** with IAM credentials that have access to Secrets Manager
+2. **Tailscale account** — generate a reusable auth key at https://login.tailscale.com/admin/settings/keys
+3. **Telegram bot** — message [@BotFather](https://t.me/BotFather) on Telegram, run `/newbot`, and save the bot token
+4. **Telegram user ID** — message [@userinfobot](https://t.me/userinfobot) to get your numeric user ID (used for `TELEGRAM_ALLOW_FROM`)
+5. **Anthropic API key** — https://console.anthropic.com/settings/keys
+6. **Brave Search API key** — https://brave.com/search/api/
+7. **ElevenLabs API key** — https://elevenlabs.io/app/settings/api-keys
+8. **Google Gemini API key** — https://aistudio.google.com/apikey
+
+### Host Requirements
+
+The `scripts/install-prereqs.sh` script handles all of these automatically, but for reference:
+
+- Ubuntu 24.04 LTS
+- Docker Engine + Docker Compose v2
+- AWS CLI v2 (configured with `aws configure`)
 
 ```bash
+# Install Docker, AWS CLI, and configure prerequisites
+sudo bash scripts/install-prereqs.sh
+
+# Configure AWS credentials (interactive)
+aws configure
+```
+
+## Quick Start
+
+### 1. Install prerequisites and harden the host (fresh Ubuntu 24.04)
+
+```bash
+sudo bash scripts/install-prereqs.sh
 sudo bash scripts/harden-host.sh ubuntu
 ```
 
@@ -77,6 +109,7 @@ openclaw/shared/tailscale-authkey     → {"authkey": "tskey-auth-..."}
 ├── .dockerignore
 ├── .gitignore
 ├── scripts/
+│   ├── install-prereqs.sh  # Docker + AWS CLI installation
 │   ├── harden-host.sh      # Host-level security (UFW, SSH, Fail2ban)
 │   ├── setup-secrets.sh    # AWS Secrets Manager bootstrapping
 │   └── deploy.sh           # Instance deployment helper
