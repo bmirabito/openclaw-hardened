@@ -22,36 +22,74 @@ get_secret() {
     --output text
 }
 
-# Per-instance secrets
+# Helper: try to load a secret, return empty string if it doesn't exist
+get_optional_secret() {
+  local secret_id="$1"
+  local result
+  result=$(get_secret "$secret_id" 2>/dev/null) || true
+  echo "$result"
+}
+
+# --- Required secrets (will fail if missing) ---
 ANTHROPIC_SECRET=$(get_secret "openclaw/${INSTANCE_NAME}/anthropic-api")
 TELEGRAM_SECRET=$(get_secret "openclaw/${INSTANCE_NAME}/telegram-bot")
 GATEWAY_SECRET=$(get_secret "openclaw/${INSTANCE_NAME}/gateway-auth")
 
-# Shared secrets
-BRAVE_SECRET=$(get_secret "openclaw/shared/brave-search-api")
-ELEVENLABS_SECRET=$(get_secret "openclaw/shared/elevenlabs-api")
-GEMINI_SECRET=$(get_secret "openclaw/shared/gemini-api")
-TAILSCALE_SECRET=$(get_secret "openclaw/shared/tailscale-authkey")
-
-# Parse JSON secrets
+# Parse required secrets
 ANTHROPIC_API_KEY=$(echo "$ANTHROPIC_SECRET" | jq -r '.api_key')
 TELEGRAM_BOT_TOKEN=$(echo "$TELEGRAM_SECRET" | jq -r '.token')
 GATEWAY_AUTH_TOKEN=$(echo "$GATEWAY_SECRET" | jq -r '.token')
 GATEWAY_PORT=$(echo "$GATEWAY_SECRET" | jq -r '.port')
-BRAVE_API_KEY=$(echo "$BRAVE_SECRET" | jq -r '.api_key')
-ELEVENLABS_API_KEY=$(echo "$ELEVENLABS_SECRET" | jq -r '.api_key')
-GEMINI_API_KEY=$(echo "$GEMINI_SECRET" | jq -r '.api_key')
-TAILSCALE_AUTHKEY=$(echo "$TAILSCALE_SECRET" | jq -r '.authkey')
 
-# Optional per-instance secrets (add your own here)
+# --- Optional shared secrets (skipped if not configured) ---
+BRAVE_API_KEY=""
+BRAVE_SECRET=$(get_optional_secret "openclaw/shared/brave-search-api")
+if [ -n "$BRAVE_SECRET" ]; then
+  BRAVE_API_KEY=$(echo "$BRAVE_SECRET" | jq -r '.api_key // empty')
+  echo "  Brave Search: loaded"
+else
+  echo "  Brave Search: skipped (no secret configured)"
+fi
+
+ELEVENLABS_API_KEY=""
+ELEVENLABS_SECRET=$(get_optional_secret "openclaw/shared/elevenlabs-api")
+if [ -n "$ELEVENLABS_SECRET" ]; then
+  ELEVENLABS_API_KEY=$(echo "$ELEVENLABS_SECRET" | jq -r '.api_key // empty')
+  echo "  ElevenLabs: loaded"
+else
+  echo "  ElevenLabs: skipped (no secret configured)"
+fi
+
+GEMINI_API_KEY=""
+GEMINI_SECRET=$(get_optional_secret "openclaw/shared/gemini-api")
+if [ -n "$GEMINI_SECRET" ]; then
+  GEMINI_API_KEY=$(echo "$GEMINI_SECRET" | jq -r '.api_key // empty')
+  echo "  Gemini: loaded"
+else
+  echo "  Gemini: skipped (no secret configured)"
+fi
+
+TAILSCALE_AUTHKEY=""
+TAILSCALE_SECRET=$(get_optional_secret "openclaw/shared/tailscale-authkey")
+if [ -n "$TAILSCALE_SECRET" ]; then
+  TAILSCALE_AUTHKEY=$(echo "$TAILSCALE_SECRET" | jq -r '.authkey // empty')
+  echo "  Tailscale: loaded"
+else
+  echo "  Tailscale: skipped (no secret configured)"
+fi
+
+# --- Optional per-instance secrets ---
 FIREFLIES_API_KEY=""
 HOOKS_TOKEN=""
 FIREFLIES_WEBHOOK_SECRET=""
-FIREFLIES_SECRET=$(get_secret "openclaw/${INSTANCE_NAME}/fireflies-api" 2>/dev/null || echo "")
-if [ -n "$FIREFLIES_SECRET" ] && [ "$FIREFLIES_SECRET" != "" ]; then
+FIREFLIES_SECRET=$(get_optional_secret "openclaw/${INSTANCE_NAME}/fireflies-api")
+if [ -n "$FIREFLIES_SECRET" ]; then
   FIREFLIES_API_KEY=$(echo "$FIREFLIES_SECRET" | jq -r '.api_key // empty')
   HOOKS_TOKEN=$(echo "$FIREFLIES_SECRET" | jq -r '.hooks_token // empty')
   FIREFLIES_WEBHOOK_SECRET=$(echo "$FIREFLIES_SECRET" | jq -r '.hooks_secret // empty')
+  echo "  Fireflies: loaded"
+else
+  echo "  Fireflies: skipped (no secret configured)"
 fi
 
 echo "Secrets loaded successfully."
@@ -158,7 +196,7 @@ cat > /tmp/secrets/openclaw.json <<CONFIGEOF
   },
   "tools": {
     "web": {
-      "search": { "enabled": true },
+      "search": { "enabled": $([ -n "$BRAVE_API_KEY" ] && echo "true" || echo "false") },
       "fetch": { "enabled": true }
     }
   },
@@ -174,11 +212,14 @@ cat > /tmp/secrets/openclaw.json <<CONFIGEOF
       "streamMode": "partial"
     }
   },
-  "talk": {
+  $(if [ -n "$ELEVENLABS_API_KEY" ]; then cat <<TALKEOF
+"talk": {
     "voiceId": "${VOICE_ID}",
     "modelId": "eleven_v3",
     "interruptOnSpeech": true
   },
+TALKEOF
+  else echo '"talk": { "enabled": false },'; fi)
   "gateway": {
     "port": ${GATEWAY_PORT},
     "mode": "local",

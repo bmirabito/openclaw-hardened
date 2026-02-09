@@ -26,16 +26,24 @@ Hardened Docker deployment for OpenClaw bot instances. Packages all host-level a
 
 Before deploying, you need the following accounts and credentials ready.
 
-### Accounts to Create
+### Required Accounts
+
+These are needed for the bot to start:
 
 1. **AWS account** with IAM credentials that have access to Secrets Manager
-2. **Tailscale account** — generate a reusable auth key at https://login.tailscale.com/admin/settings/keys
+2. **Anthropic API key** — https://console.anthropic.com/settings/keys
 3. **Telegram bot** — message [@BotFather](https://t.me/BotFather) on Telegram, run `/newbot`, and save the bot token
 4. **Telegram user ID** — message [@userinfobot](https://t.me/userinfobot) to get your numeric user ID (used for `TELEGRAM_ALLOW_FROM`)
-5. **Anthropic API key** — https://console.anthropic.com/settings/keys
-6. **Brave Search API key** — https://brave.com/search/api/
-7. **ElevenLabs API key** — https://elevenlabs.io/app/settings/api-keys
-8. **Google Gemini API key** — https://aistudio.google.com/apikey
+
+### Optional Accounts
+
+Skip any of these — the bot will start without them and disable the corresponding features:
+
+5. **Tailscale** — private networking between instances. https://login.tailscale.com/admin/settings/keys
+6. **Brave Search API** — web search capability. https://brave.com/search/api/
+7. **ElevenLabs API** — voice/TTS. https://elevenlabs.io/app/settings/api-keys
+8. **Google Gemini API** — alternative model. https://aistudio.google.com/apikey
+9. **Fireflies API** — meeting transcript ingestion. https://fireflies.ai/
 
 ### Host Requirements
 
@@ -89,15 +97,20 @@ Set these in `docker-compose.yml` or pass via shell:
 
 ### AWS Secrets Manager Structure
 
+Required:
 ```
 openclaw/<instance>/anthropic-api     → {"api_key": "..."}
 openclaw/<instance>/telegram-bot      → {"token": "..."}
 openclaw/<instance>/gateway-auth      → {"token": "...", "port": "18789"}
-openclaw/<instance>/fireflies-api     → {"api_key": "...", "hooks_token": "...", "hooks_secret": "..."} (optional)
-openclaw/shared/brave-search-api      → {"api_key": "..."}
-openclaw/shared/elevenlabs-api        → {"api_key": "..."}
-openclaw/shared/gemini-api            → {"api_key": "..."}
-openclaw/shared/tailscale-authkey     → {"authkey": "tskey-auth-..."}
+```
+
+Optional (skip any you don't need — the bot will start without them):
+```
+openclaw/shared/brave-search-api      → {"api_key": "..."}          # Web search
+openclaw/shared/elevenlabs-api        → {"api_key": "..."}          # Voice/TTS
+openclaw/shared/gemini-api            → {"api_key": "..."}          # Gemini model
+openclaw/shared/tailscale-authkey     → {"authkey": "tskey-auth-..."} # Private networking
+openclaw/<instance>/fireflies-api     → {"api_key": "...", ...}     # Meeting transcripts
 ```
 
 ## File Structure
