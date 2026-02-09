@@ -115,13 +115,43 @@ openclaw/<instance>/fireflies-api     → {"api_key": "...", ...}     # Meeting 
 
 ## Secrets Audit
 
-A secrets audit runs automatically after every deployment. You can also run it manually:
+A secrets audit runs automatically after every deployment. You can also run it manually.
+
+### Single instance (run on the instance itself)
 
 ```bash
 bash scripts/audit-secrets.sh mybot
 ```
 
-The audit checks for:
+### Single instance (run remotely via SSH)
+
+```bash
+ssh myserver "bash -s" < scripts/audit-secrets.sh mybot
+```
+
+### All instances at once (run from your local machine)
+
+```bash
+bash scripts/audit-all.sh jake:jake clay:clay reed:reed
+```
+
+Or create `~/.openclaw-instances` so you don't have to type them every time:
+
+```
+# ~/.openclaw-instances
+jake:jake
+clay:clay
+reed:reed
+```
+
+Then just run:
+
+```bash
+bash scripts/audit-all.sh
+```
+
+### What the audit checks
+
 - `.env` files on persistent storage (should only exist in tmpfs)
 - Hardcoded API keys, tokens, or passwords in config files
 - Secrets leaked into shell history
@@ -146,6 +176,7 @@ Any findings should be resolved by moving the secret to AWS Secrets Manager and 
 │   ├── harden-host.sh      # Host-level security (UFW, SSH, Fail2ban)
 │   ├── setup-secrets.sh    # AWS Secrets Manager bootstrapping
 │   ├── deploy.sh           # Instance deployment helper
-│   └── audit-secrets.sh    # Post-deploy secrets audit
+│   ├── audit-secrets.sh    # Post-deploy secrets audit (single instance)
+│   └── audit-all.sh        # Audit all instances via SSH
 └── data/                   # (gitignored) per-instance persistent data
 ```
