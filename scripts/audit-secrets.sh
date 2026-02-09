@@ -83,6 +83,10 @@ for dir in "${SCAN_DIRS[@]}"; do
     | grep -v 'package.json' \
     | grep -v 'package-lock.json' \
     | grep -v 'openclaw-hardened' \
+    | grep -v '/aws/dist/' \
+    | grep -v '/botocore/' \
+    | grep -v '/.cache/' \
+    | grep -v '/site-packages/' \
     || true)
 done
 
@@ -171,15 +175,21 @@ for pattern in "${CRED_PATTERNS[@]}"; do
     [[ "$credfile" == *node_modules* ]] && continue
     [[ "$credfile" == *openclaw-hardened* ]] && continue
     [[ "$credfile" == */man/* ]] && continue
+    [[ "$credfile" == */aws/dist/* ]] && continue
+    [[ "$credfile" == */.cache/* ]] && continue
+    [[ "$credfile" == */site-packages/* ]] && continue
     [[ "$credfile" == */.aws/credentials ]] && { warning "AWS credentials file exists: ${credfile} (expected if using IAM user)"; continue; }
     warning "Potential credential file: ${credfile}"
   done < <(find /home -iname "*${pattern}*" -type f -not -path '*/node_modules/*' -not -path '*/.npm/*' 2>/dev/null || true)
 done
 
 # Check for private keys outside .ssh
+# Exclude: Syncthing (auto-generated, local-only), Tailscale (auto-generated ACME certs)
 while IFS= read -r keyfile; do
   [[ "$keyfile" == */.ssh/* ]] && continue
   [[ "$keyfile" == *node_modules* ]] && continue
+  [[ "$keyfile" == */.config/syncthing/* ]] && continue
+  [[ "$keyfile" == */tailscale/certs/* ]] && continue
   if grep -ql 'PRIVATE KEY' "$keyfile" 2>/dev/null; then
     finding "Private key found outside .ssh: ${keyfile}"
   fi
