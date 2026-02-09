@@ -113,6 +113,26 @@ openclaw/shared/tailscale-authkey     → {"authkey": "tskey-auth-..."} # Privat
 openclaw/<instance>/fireflies-api     → {"api_key": "...", ...}     # Meeting transcripts
 ```
 
+## Secrets Audit
+
+A secrets audit runs automatically after every deployment. You can also run it manually:
+
+```bash
+bash scripts/audit-secrets.sh mybot
+```
+
+The audit checks for:
+- `.env` files on persistent storage (should only exist in tmpfs)
+- Hardcoded API keys, tokens, or passwords in config files
+- Secrets leaked into shell history
+- Secrets visible in `docker inspect` output
+- Private keys outside of `~/.ssh/`
+- Loose file permissions on sensitive files
+- Secrets inside the running container's workspace or config
+- Credential files that should be in Secrets Manager
+
+Any findings should be resolved by moving the secret to AWS Secrets Manager and removing it from disk.
+
 ## File Structure
 
 ```
@@ -125,6 +145,7 @@ openclaw/<instance>/fireflies-api     → {"api_key": "...", ...}     # Meeting 
 │   ├── install-prereqs.sh  # Docker + AWS CLI installation
 │   ├── harden-host.sh      # Host-level security (UFW, SSH, Fail2ban)
 │   ├── setup-secrets.sh    # AWS Secrets Manager bootstrapping
-│   └── deploy.sh           # Instance deployment helper
+│   ├── deploy.sh           # Instance deployment helper
+│   └── audit-secrets.sh    # Post-deploy secrets audit
 └── data/                   # (gitignored) per-instance persistent data
 ```

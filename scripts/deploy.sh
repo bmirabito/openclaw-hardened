@@ -38,6 +38,15 @@ cd "$PROJECT_DIR"
 INSTANCE_NAME="$INSTANCE_NAME" AWS_REGION="$AWS_REGION" \
   docker compose up -d --build
 
+# Wait for container to be healthy before auditing
+echo "Waiting for container to start..."
+sleep 5
+
+# Run secrets audit
+echo ""
+echo "=== Running secrets audit ==="
+bash "${SCRIPT_DIR}/audit-secrets.sh" "$INSTANCE_NAME" || true
+
 echo ""
 echo "=== Deploy complete ==="
 echo "Container: openclaw-${INSTANCE_NAME}"
@@ -47,3 +56,4 @@ echo "  docker logs -f openclaw-${INSTANCE_NAME}     # Follow logs"
 echo "  docker exec -it openclaw-${INSTANCE_NAME} bash  # Shell into container"
 echo "  docker compose down                           # Stop"
 echo "  docker compose up -d --build                  # Rebuild and restart"
+echo "  bash scripts/audit-secrets.sh ${INSTANCE_NAME}  # Re-run secrets audit"
