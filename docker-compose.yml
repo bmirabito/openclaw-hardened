@@ -1,0 +1,84 @@
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: openclaw-${INSTANCE_NAME}
+    restart: unless-stopped
+
+    environment:
+      - INSTANCE_NAME=${INSTANCE_NAME}
+      - AWS_REGION=${AWS_REGION:-us-east-2}
+
+    volumes:
+      # Core data volumes (required)
+      - ./data/${INSTANCE_NAME}/clawd:/home/openclaw/clawd
+      - ./data/${INSTANCE_NAME}/clawd/skills:/home/openclaw/clawd/skills:ro
+      - ./data/${INSTANCE_NAME}/transforms:/home/openclaw/.openclaw/transforms
+      - ./data/${INSTANCE_NAME}/tailscale:/var/lib/tailscale
+      # Persistent OpenClaw state
+      - ./data/${INSTANCE_NAME}/openclaw-data/agents:/home/openclaw/.openclaw/agents
+      - ./data/${INSTANCE_NAME}/openclaw-data/telegram:/home/openclaw/.openclaw/telegram
+      - ./data/${INSTANCE_NAME}/openclaw-data/devices:/home/openclaw/.openclaw/devices
+      - ./data/${INSTANCE_NAME}/openclaw-data/identity:/home/openclaw/.openclaw/identity
+      - ./data/${INSTANCE_NAME}/openclaw-data/settings:/home/openclaw/.openclaw/settings
+      - ./data/${INSTANCE_NAME}/openclaw-data/cron:/home/openclaw/.openclaw/cron
+      - ./data/${INSTANCE_NAME}/openclaw-data/media:/home/openclaw/.openclaw/media
+      # Optional: mount a host directory as read-only workspace
+      # - /home/ubuntu/my-workspace:/home/openclaw/clawd/workspace:ro
+
+    # Secrets live in tmpfs (RAM-backed, never written to disk)
+    tmpfs:
+      - /tmp/secrets:size=10M,mode=0700
+      - /tmp:size=100M
+      - /run:size=10M
+      - /home/openclaw/.openclaw:size=10M,mode=0755,uid=1001,gid=1001
+
+    # Tailscale networking
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+    # Drop ALL capabilities, add back only what's needed
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - DAC_OVERRIDE
+      - SETUID
+      - SETGID
+      - FOWNER
+      - CHOWN
+
+    # Prevent privilege escalation
+    security_opt:
+      - no-new-privileges:true
+
+    # Read-only root filesystem
+    read_only: true
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+          cpus: "1.5"
+          pids: 256
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+
+    # Health check against gateway
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:$(cat /tmp/gateway-port)/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Bounded log storage
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

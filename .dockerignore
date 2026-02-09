@@ -1,0 +1,6 @@
+data/
+*.log
+.env
+.git
+README.md
+scripts/
