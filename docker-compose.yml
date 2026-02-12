@@ -65,8 +65,8 @@ services:
           cpus: "1.5"
           pids: 256
         reservations:
-          memory: 512M
-          cpus: "0.5"
+          memory: 768M
+          cpus: "1.0"
 
     # Health check against gateway
     healthcheck:
