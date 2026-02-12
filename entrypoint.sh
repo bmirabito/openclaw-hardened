@@ -150,6 +150,12 @@ fi
 # Voice ID — override via VOICE_ID env var or defaults
 VOICE_ID="${VOICE_ID:-XA2bIQ92TabjGbpO2xRr}"
 
+# Per-instance model defaults: Reed gets Sonnet for reasoning-heavy theological work
+PRIMARY_MODEL="anthropic/claude-haiku-4-5"
+if [ "$INSTANCE_NAME" = "reed" ]; then
+  PRIMARY_MODEL="anthropic/claude-sonnet-4-5"
+fi
+
 # Telegram user authorization — set TELEGRAM_ALLOW_FROM env var
 TELEGRAM_ALLOW_FROM="${TELEGRAM_ALLOW_FROM:-}"
 
@@ -172,22 +178,24 @@ cat > /tmp/secrets/openclaw.json <<CONFIGEOF
   "agents": {
     "defaults": {
       "model": {
-        "primary": "anthropic/claude-haiku-4-5"
+        "primary": "${PRIMARY_MODEL}"
       },
       "models": {
         "anthropic/claude-opus-4-5": {
           "alias": "opus",
-          "params": { "cache_control": { "type": "ephemeral" } }
+          "params": { "cache_control": { "type": "ephemeral" }, "cacheControlTtl": "1h" }
         },
         "anthropic/claude-sonnet-4-5": {
           "alias": "sonnet",
-          "params": { "cache_control": { "type": "ephemeral" } }
+          "params": { "cache_control": { "type": "ephemeral" }, "cacheControlTtl": "1h" }
         },
         "anthropic/claude-haiku-4-5": {
           "alias": "haiku",
-          "params": { "cache_control": { "type": "ephemeral" } }
+          "params": { "cache_control": { "type": "ephemeral" }, "cacheControlTtl": "1h" }
         }
       },
+      "contextPruning": { "mode": "cache-ttl", "ttl": "5m" },
+      "heartbeat": { "every": "55m" },
       "workspace": "/home/openclaw/clawd",
       "compaction": { "mode": "safeguard" },
       "maxConcurrent": 4,
