@@ -163,20 +163,6 @@ bash scripts/audit-all.sh
 
 Any findings should be resolved by moving the secret to AWS Secrets Manager and removing it from disk.
 
-## Operations
-
-Once everything is deployed, see **[OPERATIONS.md](OPERATIONS.md)** for the day-to-day reference:
-
-- Monitoring (Portainer dashboard, terminal status, Telegram alerts)
-- Connecting from your MacBook via Tailscale
-- Transferring files (scp, rsync, Taildrop, SFTP)
-- Common commands (logs, restart, redeploy, exec)
-- Updating secrets
-- Backup and recovery
-- Troubleshooting
-
-For the full setup walkthrough (one-time), see **[SETUP_PLAN.md](SETUP_PLAN.md)**.
-
 ## File Structure
 
 ```
